@@ -1,0 +1,30 @@
+//Maybe an optional item
+void readImports()
+
+
+//Actual useful Declarations
+void classAssociations()
+
+//Methods for classAssociations
+//Likely using something along
+//the lines of a collection
+void identifyMultiplicity()
+
+void inherited()
+
+void implementedInterface()
+
+
+void readClass()
+void getAttributes()
+
+//Multi methods
+void parseToUmple()
+
+//Depending on amount of classes, instantiate threads to read classes
+//For each and every single java file a thread will be executed and will read each line
+//All of them will output and append to destination file
+
+
+/*
+*/
