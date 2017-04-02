@@ -21,6 +21,10 @@ import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
 
 public class UMLParser {
+	
+	private String[] className;
+	private String[] keywordList = {"if","else if", "if"};
+	
 	public static void main(String[] args) throws Exception {
 		
 		// creates an input stream for the file to be parsed
