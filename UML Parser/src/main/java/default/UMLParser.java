@@ -13,9 +13,6 @@
  * Currently experimenting w/ code.  Will come up w/ interface soon. 
  **/ 
 
-
-package as;
-
 import java.io.FileInputStream;
 import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
@@ -26,16 +23,40 @@ public class UMLParser {
 	private String[] keywordList = {"if","else if", "if"};
 	
 	public static void main(String[] args) throws Exception {
+		EnumSet<Modifier> pubAccMod = EnumSet.of(Modifier.PUBLIC);
+		EnumSet<Modifier> privAccMod = EnumSet.of(Modifier.PRIVATE);
+		EnumSet<Modifier> staticMod = EnumSet.of(Modifier.STATIC);		
 		
 		// creates an input stream for the file to be parsed
-	    FileInputStream in = new FileInputStream("C:\\Users\\Tatsuya\\workspace\\as\\src\\main\\java\\as\\test.java");
+    	FileInputStream in = new FileInputStream("C:\\Users\\Tatsuya\\workspace\\as\\src\\main\\java\\as\\test.java");
 
-	    // parse the file
-	    CompilationUnit cu = JavaParser.parse(in);
+        // parse the file
+        CompilationUnit cu = JavaParser.parse(in);
 
-	    // prints the resulting compilation unit to default system output
-	    System.out.println(cu.toString());
-	    
+        // change the methods names and parameters
+        changeMethods(cu);
+
+        // prints the changed compilation unit
+        System.out.println(cu.toString());
+        
+        ClassOrInterfaceDeclaration myClass = new ClassOrInterfaceDeclaration();
+        myClass.setName("Hi");
+        myClass.setModifiers(pubAccMod);
+//        myClass.setModifiers(staticMod);
+        String code = myClass.toString();
+        
+        System.out.print(code);
+        
+        EnumSet<Modifier> modifiers = EnumSet.of(Modifier.PUBLIC);
+        MethodDeclaration method = new MethodDeclaration(modifiers, new VoidType(), "main");
+        modifiers.add(Modifier.STATIC);
+        method.setModifiers(modifiers);
+        method.toString();
+        
+        System.out.println(method);
+        
+        System.out.println("Working Directory = " +
+                System.getProperty("user.dir"));
 	}
 	
 }
