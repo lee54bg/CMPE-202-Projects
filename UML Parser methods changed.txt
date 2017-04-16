@@ -1,0 +1,9 @@
+04-14-2017
+Changelog to the UML Diagram
+
+FileWriter toFile;
+
+changeMethods() // this has been provided on the javaparser website already
+parseVariables()
+parseInheritance()
+parseImplmnt()
