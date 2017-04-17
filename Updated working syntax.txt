@@ -1,0 +1,17 @@
+/*
+ * The following syntax works for PlantUML:
+ArrayList --|> List
+ArrayList : -Object[] elementData
+ArrayList : +size()
+ArrayList : +size(coin : int)
+ArrayList : +size(coisn : String) : void
+class Dummy {
+  String data
+  void methods()
+}
+class Flight {
+   -flightNumber : Integer
+   departureTime : Date
+}
+Flight --|> Dummy
+ * */
