@@ -44,30 +44,78 @@ public class UMLParser {
 		CompilationUnit cu = JavaParser.parse(in);
 		// StringBuilder writeToFile = null;
 		
-		// parseClassOrInt(cu);
-		parseMethods(cu);
-		parseVariables(cu);
+		parseClassOrInt(cu);
 		
-		// new VariableChangerVisitor().visit(cu, null);
-		// new FieldChangerVisitor().visit(cu, null);
-		// System.out.println("New output");
-		// System.out.println(cu.toString());
+		/*
+		System.out.println("\nExecuting parse methods...\n\n");
+		parseMethods(cu);
+		System.out.println("\nExecuting parse variables...\n\n");
+		parseVariables(cu);*/
 	}
 	
 	// Parsing the class name or interface
 	private static void parseClassOrInt(CompilationUnit cu) {
 		// ClassOrInterfaceDeclaration classOrInt = new ClassOrInterfaceDeclaration();
 		
+		//NodeList<TypeDeclaration<?>> types = cu.get();
 		NodeList<TypeDeclaration<?>> types = cu.getTypes();
-		
-		/*if (.isInterface()) {
-			System.out.println("");
-		} else {
-			System.out.println("");
-		}*/
+		for (TypeDeclaration<?> type : types) {
+			if (type instanceof ClassOrInterfaceDeclaration) {
+				ClassOrInterfaceDeclaration classOrInt = (ClassOrInterfaceDeclaration) type;
+				
+				if(classOrInt.getExtendedTypes() != null) {
+					System.out.println(classOrInt.getNameAsString() 
+						+ " --|> " + classOrInt.getExtendedTypes(0));
+				}
+				
+				if (classOrInt.isInterface()) {
+					parseMethods(cu, classOrInt);
+					// System.out.println("It's an interface yay");
+				} else {
+					parseVariables(cu, classOrInt);
+					parseMethods(cu, classOrInt);
+					// System.out.println("It's a class yay");
+				}
+				System.out.println("Detected class " + classOrInt.getName());
+			}
+			
+			// Go through all fields, methods, etc. in this type
+            NodeList<BodyDeclaration<?>> members = type.getMembers();
+            
+            /*// Section of code will detect inner classes
+            for (BodyDeclaration<?> member : members) {
+                if (member instanceof ClassOrInterfaceDeclaration) {
+                	ClassOrInterfaceDeclaration innerClassOrInt = (ClassOrInterfaceDeclaration) type;
+                	System.out.println("Detected inner class " + innerClassOrInt.getName());
+                }
+            }*/
+		}
 	}
 	
+	/*
+	 * Methods will parse the methods to their respective classes
+	 * */
 	
+	// Parse methods inside a a class
+	private static void parseMethods(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt) {
+        // Go through all the types in the file
+        NodeList<TypeDeclaration<?>> types = cu.getTypes();
+        
+        for (TypeDeclaration<?> type : types) {
+            // Go through all fields, methods, etc. in this type
+            NodeList<BodyDeclaration<?>> members = type.getMembers();
+            
+            for (BodyDeclaration<?> member : members) {
+                if (member instanceof MethodDeclaration) {
+                    MethodDeclaration method = (MethodDeclaration) member;
+                    // parseMethod(method);
+                    if(method.getModifiers().contains(Modifier.PUBLIC))
+            			System.out.println(classOrInt.getName() + " : " + method.getNameAsString().toString() + " " + method.getType());
+                }
+            }
+        }
+    }
+		
 	private static void parseMethods(CompilationUnit cu) {
         // Go through all the types in the file
         NodeList<TypeDeclaration<?>> types = cu.getTypes();
@@ -89,8 +137,38 @@ public class UMLParser {
 	private static void parseMethod(MethodDeclaration n) {
 		if(n.getModifiers().contains(Modifier.PUBLIC))
 			System.out.println("+" + n.getNameAsString().toString() + " " + n.getType());
-			/*st.append("+" + n.getNameAsString().toString() + n.getType()
-				+ "\n");*/
+			/*st.append("+" + n.getNameAsString().toString() + n.getType() + "\n");*/
+	}
+	
+	/*
+	 * Methods will parse the variables to their respective classes
+	 * */
+	
+	private static void parseVariables(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt) {
+		// Go through all the types in the file
+        NodeList<TypeDeclaration<?>> types = cu.getTypes();
+        
+        for (TypeDeclaration<?> type : types) {
+            // Go through all fields, methods, etc. in this type
+            NodeList<BodyDeclaration<?>> members = type.getMembers();
+            
+            for (BodyDeclaration<?> member : members) {
+                if (member instanceof FieldDeclaration) {
+                    FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
+                    // parseVariable(fieldDeclaration, writeToFile);
+                    String addMethods = classOrInt.getName().toString()
+                    	+ " :  " + fieldDeclaration.getElementType()
+                    	+ " " + fieldDeclaration.getVariable(0).getNameAsString();
+            		if(fieldDeclaration.getModifiers().contains(Modifier.PRIVATE)) {
+            			// st.append("-" + addMethods);
+                		System.out.println("-" + addMethods);
+                	} else if(fieldDeclaration.getModifiers().contains(Modifier.PUBLIC)) {
+                		// st.append("+" + addMethods);
+                		System.out.println("+" + addMethods);
+                	}
+                }
+            }
+        }
 	}
 	
 	// Parsing Variables
@@ -117,10 +195,10 @@ public class UMLParser {
 		String addMethods = fieldDec.getElementType() + " : " + fieldDec.getVariable(0);
 		
 		if(fieldDec.getModifiers().contains(Modifier.PRIVATE)) {
-//    		st.append("-" + addMethods);
+			// st.append("-" + addMethods);
     		System.out.println("-" + addMethods);
     	} else if(fieldDec.getModifiers().contains(Modifier.PUBLIC)) {
-//    		st.append("+" + addMethods);
+    		// st.append("+" + addMethods);
     		System.out.println("+" + addMethods);
     	}
 	}
