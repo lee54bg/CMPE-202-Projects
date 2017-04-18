@@ -35,7 +35,26 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 public class UMLParser {
 	
 	public static void main(String[] args) throws Exception {
-
+		
+		System.out.println("Initiated UML Parser");
+		
+		// creates an input stream for the file to be parsed
+		System.out.println("Working Directory = " +
+	              System.getProperty("user.dir"));
+		if(args == null) {
+			System.out.println("Please print the commands properly");
+		}
+		File in = new File(args[0]);
+		/*FileInputStream in = new FileInputStream(
+				"C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");*/
+		
+		if(!in.exists()) {
+			System.out.println("The file(s) do not exist");
+		} else {
+			System.out.println("The file(s) exists");
+		}
+		
+		
 		// creates an input stream for the file to be parsed
 		FileInputStream in = new FileInputStream(
 			"C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
