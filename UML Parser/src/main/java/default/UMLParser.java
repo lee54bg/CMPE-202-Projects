@@ -34,39 +34,64 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class UMLParser {
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {/*Class myClass = forName("UMLParser");
+		ClassLoader loader = myClass.getClassLoader();
+		*/
 		
-		System.out.println("Initiated UML Parser");
+		CompilationUnit cu		= null;
 		
-		// creates an input stream for the file to be parsed
-		System.out.println("Working Directory = " +
-	              System.getProperty("user.dir"));
-		if(args == null) {
-			System.out.println("Please print the commands properly");
-		}
-		File in = new File(args[0]);
-		/*FileInputStream in = new FileInputStream(
-				"C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");*/
-		
-		if(!in.exists()) {
-			System.out.println("The file(s) do not exist");
-		} else {
-			System.out.println("The file(s) exists");
+		/*if(args.length != 1) {
+			System.out.println("Not enough arguments.  Terminating");
+			System.exit(0);
 		}
 		
+		File toParse			= new File(args[0]);
+		CompilationUnit cu		= null;
+		StringBuilder toText	= new StringBuilder();
+		Scanner input = new Scanner(System.in);
+		boolean foundFile = false;
 		
-		// creates an input stream for the file to be parsed
-		FileInputStream in = new FileInputStream(
-			"C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
-
-		// parse the file
-		CompilationUnit cu = JavaParser.parse(in);
-		// StringBuilder writeToFile = null;
+		System.out.println(args[0]);
 		
+		cu = JavaParser.parse("test.java");
+		
+		System.out.println("skinparam classAttributeIconSize 0");
 		parseClassOrInt(cu);
 		
-		/*
-		System.out.println("\nExecuting parse methods...\n\n");
+		do {
+			if (toParse.exists())
+				// if (toParse.exists() && toParse.isDirectory())
+				foundFile = true;
+			else {
+				System.out.println("Please enter path name: ");
+				String pathName = input.nextLine();
+				
+				if(pathName.equals("exit"))
+					System.exit(0);
+				else
+					toParse = new File(pathName);
+			}
+		} while (!foundFile);
+		System.out.println(toParse.getName());*/
+		
+		 
+		
+		// FileInputStream parsing = new FileInputStream(toParse);
+		// cu = JavaParser.parse(parsing);
+		
+		/* This works */
+		// File f = new File("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");	
+		// FileInputStream parsing = new FileInputStream(f);
+		// cu = JavaParser.parse(parsing);
+		// System.out.println("skinparam classAttributeIconSize 0");
+		// parseClassOrInt(cu);
+		
+		// FileInputStream parsing = new FileInputStream("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
+		// cu = JavaParser.parse(parsing);
+		// System.out.println("skinparam classAttributeIconSize 0");
+		// parseClassOrInt(cu);
+		
+		/* System.out.println("\nExecuting parse methods...\n\n");
 		parseMethods(cu);
 		System.out.println("\nExecuting parse variables...\n\n");
 		parseVariables(cu);*/
