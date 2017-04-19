@@ -1,69 +1,53 @@
 package com.umlparser.UMLParser;
 
+import java.io.File;
 import java.io.FileInputStream;
-import java.util.EnumSet;
-import java.util.List;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Scanner;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.body.VariableDeclarator;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.FieldAccessExpr;
-import com.github.javaparser.ast.expr.IntegerLiteralExpr;
-import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.Name;
-import com.github.javaparser.ast.expr.NameExpr;
-import com.github.javaparser.ast.expr.StringLiteralExpr;
-import com.github.javaparser.ast.expr.VariableDeclarationExpr;
-import com.github.javaparser.ast.stmt.BlockStmt;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import com.github.javaparser.ast.type.Type;
-import com.github.javaparser.ast.type.VoidType;
-import com.github.javaparser.ast.visitor.ModifierVisitor;
-import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class UMLParser {
 	
-	public static void main(String[] args) throws Exception {/*Class myClass = forName("UMLParser");
-		ClassLoader loader = myClass.getClassLoader();
-		*/
+	public static void main(String[] args) throws Exception {
+		println("Initiating program...");
 		
-		CompilationUnit cu		= null;
+		// Output will go to writer once which has been defined below
+		PrintWriter writer;
 		
-		/*if(args.length != 1) {
-			System.out.println("Not enough arguments.  Terminating");
+		if(args.length == 1) {
+			println("Default output to the current directory");
+		} else if(args.length != 2) {
+			println("Not enough arguments.  Terminating program");
 			System.exit(0);
 		}
 		
+		// Find file from the first argument of the cmd prmpt
 		File toParse			= new File(args[0]);
 		CompilationUnit cu		= null;
+		// This will be used to output to a text file
 		StringBuilder toText	= new StringBuilder();
+		// Scanner used to input the correct path name
 		Scanner input = new Scanner(System.in);
+		// Used to verify if file to parse has been found
 		boolean foundFile = false;
-		
-		System.out.println(args[0]);
-		
-		cu = JavaParser.parse("test.java");
-		
-		System.out.println("skinparam classAttributeIconSize 0");
-		parseClassOrInt(cu);
+		// Used to parse the input stream of the file
+		FileInputStream parsing;
 		
 		do {
 			if (toParse.exists())
-				// if (toParse.exists() && toParse.isDirectory())
 				foundFile = true;
 			else {
-				System.out.println("Please enter path name: ");
+				println("Please enter valid path name or exit to close program: ");
 				String pathName = input.nextLine();
 				
 				if(pathName.equals("exit"))
@@ -72,29 +56,17 @@ public class UMLParser {
 					toParse = new File(pathName);
 			}
 		} while (!foundFile);
-		System.out.println(toParse.getName());*/
 		
-		 
+		// println(toParse.getName());
 		
-		// FileInputStream parsing = new FileInputStream(toParse);
-		// cu = JavaParser.parse(parsing);
+		parsing = new FileInputStream(toParse);
+		cu = JavaParser.parse(parsing);
 		
-		/* This works */
-		// File f = new File("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");	
+		println("skinparam classAttributeIconSize 0");
+		parseClassOrInt(cu);
+		// File f = new File(fileArg);	
 		// FileInputStream parsing = new FileInputStream(f);
 		// cu = JavaParser.parse(parsing);
-		// System.out.println("skinparam classAttributeIconSize 0");
-		// parseClassOrInt(cu);
-		
-		// FileInputStream parsing = new FileInputStream("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
-		// cu = JavaParser.parse(parsing);
-		// System.out.println("skinparam classAttributeIconSize 0");
-		// parseClassOrInt(cu);
-		
-		/* System.out.println("\nExecuting parse methods...\n\n");
-		parseMethods(cu);
-		System.out.println("\nExecuting parse variables...\n\n");
-		parseVariables(cu);*/
 	}
 	
 	// Parsing the class name or interface
@@ -122,17 +94,8 @@ public class UMLParser {
 				}
 				System.out.println("Detected class " + classOrInt.getName());
 			}
-			
 			// Go through all fields, methods, etc. in this type
-            NodeList<BodyDeclaration<?>> members = type.getMembers();
-            
-            /*// Section of code will detect inner classes
-            for (BodyDeclaration<?> member : members) {
-                if (member instanceof ClassOrInterfaceDeclaration) {
-                	ClassOrInterfaceDeclaration innerClassOrInt = (ClassOrInterfaceDeclaration) type;
-                	System.out.println("Detected inner class " + innerClassOrInt.getName());
-                }
-            }*/
+			NodeList<BodyDeclaration<?>> members = type.getMembers();
 		}
 	}
 	
@@ -153,30 +116,14 @@ public class UMLParser {
                 if (member instanceof MethodDeclaration) {
                     MethodDeclaration method = (MethodDeclaration) member;
                     // parseMethod(method);
+                    String methodToPrint = method.getNameAsString().toString() + " : " + method.getType();
                     if(method.getModifiers().contains(Modifier.PUBLIC))
-            			System.out.println(classOrInt.getName() + " : " + method.getNameAsString().toString() + " " + method.getType());
+            			System.out.println(methodToPrint);
                 }
             }
         }
     }
 		
-	private static void parseMethods(CompilationUnit cu) {
-        // Go through all the types in the file
-        NodeList<TypeDeclaration<?>> types = cu.getTypes();
-        
-        for (TypeDeclaration<?> type : types) {
-            // Go through all fields, methods, etc. in this type
-            NodeList<BodyDeclaration<?>> members = type.getMembers();
-            
-            for (BodyDeclaration<?> member : members) {
-                if (member instanceof MethodDeclaration) {
-                    MethodDeclaration method = (MethodDeclaration) member;
-                    parseMethod(method);
-                }
-            }
-        }
-    }
-        
 	// Parse method
 	private static void parseMethod(MethodDeclaration n) {
 		if(n.getModifiers().contains(Modifier.PUBLIC))
@@ -200,9 +147,8 @@ public class UMLParser {
                 if (member instanceof FieldDeclaration) {
                     FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
                     // parseVariable(fieldDeclaration, writeToFile);
-                    String addMethods = classOrInt.getName().toString()
-                    	+ " :  " + fieldDeclaration.getElementType()
-                    	+ " " + fieldDeclaration.getVariable(0).getNameAsString();
+                    String addMethods = fieldDeclaration.getVariable(0).getNameAsString()
+                    	+ " : " + fieldDeclaration.getElementType();
             		if(fieldDeclaration.getModifiers().contains(Modifier.PRIVATE)) {
             			// st.append("-" + addMethods);
                 		System.out.println("-" + addMethods);
@@ -210,26 +156,6 @@ public class UMLParser {
                 		// st.append("+" + addMethods);
                 		System.out.println("+" + addMethods);
                 	}
-                }
-            }
-        }
-	}
-	
-	// Parsing Variables
-	// private static void parseVariables(CompilationUnit cu, StringBuilder writeToFile) {
-	private static void parseVariables(CompilationUnit cu) {
-		// Go through all the types in the file
-        NodeList<TypeDeclaration<?>> types = cu.getTypes();
-        
-        for (TypeDeclaration<?> type : types) {
-            // Go through all fields, methods, etc. in this type
-            NodeList<BodyDeclaration<?>> members = type.getMembers();
-            
-            for (BodyDeclaration<?> member : members) {
-                if (member instanceof FieldDeclaration) {
-                    FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
-                    // parseVariable(fieldDeclaration, writeToFile);
-                    parseVariable(fieldDeclaration);
                 }
             }
         }
@@ -243,11 +169,47 @@ public class UMLParser {
     		System.out.println("-" + addMethods);
     	} else if(fieldDec.getModifiers().contains(Modifier.PUBLIC)) {
     		// st.append("+" + addMethods);
-    		System.out.println("+" + addMethods);
+    		println("+" + addMethods);
     	}
+	}
+	
+	
+	private static void outToFile() {
+		try{
+		    PrintWriter writer = new PrintWriter("the-file-name.txt", "UTF-8");
+		    writer.println("The first line");
+		    writer.println("The second line");
+		    writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void print(String string) {
+		System.out.print(string);
+	}
+	public static void println(String string) {
+		System.out.println(string);
 	}
 }
 
+/*
+ * The following syntax works for PlantUML:
+ArrayList --|> List
+ArrayList : -Object[] elementData
+ArrayList : +size()
+ArrayList : +size(coin : int)
+ArrayList : +size(coisn : String) : void
+class Dummy {
+  String data
+  void methods()
+}
+class Flight {
+   -flightNumber : Integer
+   departureTime : Date
+}
+Flight --|> Dummy
+ * */
 
 /*
  * 
