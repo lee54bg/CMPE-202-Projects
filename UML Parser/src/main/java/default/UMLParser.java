@@ -4,17 +4,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Scanner;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.type.Type;
 
 public class UMLParser {
@@ -25,13 +28,13 @@ public class UMLParser {
 		// Output will go to writer once which has been defined below
 		PrintWriter writer = null;
 		
-//		// Find file from the first argument of the cmd prmpt
-//		File toParse			= new File("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
-//		CompilationUnit cu		= null;
-//		FileInputStream parsing;
-//		StringBuilder toText	= new StringBuilder();
+		// Find file from the first argument of the cmd prmpt
+		File toParse			= new File("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
+		CompilationUnit cu		= null;
+		FileInputStream parsing;
+		StringBuilder toText	= new StringBuilder();
 		
-		if(args.length == 1) {
+		/*if(args.length == 1) {
 			println("Default output to the current directory");
 		} else if(args.length != 2) {
 			println("Not enough arguments.  Terminating program");
@@ -64,7 +67,7 @@ public class UMLParser {
 				else
 					toParse = new File(pathName);
 			}
-		} while (!foundFile);
+		} while (!foundFile);*/
 		
 		parsing = new FileInputStream(toParse);
 		cu = JavaParser.parse(parsing);
@@ -96,12 +99,11 @@ public class UMLParser {
 					parseVariables(cu, classOrInt, st);
 					parseMethods(cu, classOrInt, st);
 				}
-				println("Detected class " + classOrInt.getName());
 			}
 			// Go through all fields, methods, etc. in this type
 			NodeList<BodyDeclaration<?>> members = type.getMembers();
 		}
-	}
+	} // End of parseClassOrInt method
 	
 	/*
 	 * Methods used to parse java methods 
@@ -133,7 +135,7 @@ public class UMLParser {
 				}
 			}
 		}
-	}
+	} // End of parseMethods
 	
 	/*
 	 * Methods will parse the variables to their respective classes
@@ -147,30 +149,49 @@ public class UMLParser {
             // Go through all fields, methods, etc. in this type
             NodeList<BodyDeclaration<?>> members = type.getMembers();
             
+            println("Getting children of the field classes...");
             for (BodyDeclaration<?> member : members) {
-                if (member instanceof FieldDeclaration) {
+            	if (member instanceof FieldDeclaration) {
                     FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
-                    // parseVariable(fieldDeclaration, writeToFile);
                     String className		= classOrInt.getNameAsString();
+                    Type elementType		= fieldDeclaration.getElementType();
 					String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
-					Type elementType		= fieldDeclaration.getElementType();
 					
-//					println(fieldDeclaration.getChildNodes().get(0).toString());
-//					println(fieldDeclaration.getChildNodes().get(1).toString());
+					String 				initialvalue;
+					VariableDeclarator	variable;
 					
-            		if(fieldDeclaration.getModifiers().contains(Modifier.PRIVATE)) {
-            			String addVariable = className + " : -" + elementType + " " + variableName;
-            			append(st, addVariable);
-            			println(addVariable);
-            		} else if(fieldDeclaration.getModifiers().contains(Modifier.PUBLIC)) {
-                		String addVariable = className + " : +" + elementType + " " + variableName;
-                		append(st, addVariable);
-                		println(className + " : +" + elementType + " " + variableName);
-                	}
+					List<Node> fieldNodes = fieldDeclaration.getChildNodes();
+					if(fieldNodes != null) {
+						if (fieldNodes.get(0) instanceof VariableDeclarator) {
+							variable = (VariableDeclarator) fieldNodes.get(0);
+							initialvalue = variable.getInitializer().get().toString();
+							
+							String addVariable = className + " : -" + elementType + " " + variableName
+									+ " = " + initialvalue;
+	            			append(st, addVariable);
+	            			println(addVariable);
+						}
+					} else {
+						if(fieldDeclaration.getModifiers().contains(Modifier.PRIVATE)) {
+	            			String addVariable = className + " : -" + elementType + " " + variableName;
+	            			append(st, addVariable);
+	            			println(addVariable);
+	            		} else if(fieldDeclaration.getModifiers().contains(Modifier.PUBLIC)) {
+	                		String addVariable = className + " : +" + elementType + " " + variableName;
+	                		append(st, addVariable);
+	                		println(className + " : +" + elementType + " " + variableName);
+	                	}
+					}             		
                 }
             }
-        }
-	}
+        } // End of for loop TypeDeclaration
+	} // End of parseVariables method
+	
+	/*private static void displayVars(String className, String elementType, String variableName, char accMod) {
+		String addVariable = className + " : " + accMod + elementType + " " + variableName;
+		append(st, addVariable);
+		println(addVariable);
+	}*/
 	
 	// Method used to output code to file
 	private static void outToFile(PrintWriter writer, StringBuilder st) {
