@@ -18,6 +18,7 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.type.Type;
 
 public class UMLParser {
@@ -90,6 +91,8 @@ public class UMLParser {
 				if(classOrInt.getExtendedTypes() != null) {
 					println(classOrInt.getNameAsString() 
 						+ " --|> " + classOrInt.getExtendedTypes(0));
+					append(st, classOrInt.getNameAsString() 
+						+ " --|> " + classOrInt.getExtendedTypes(0) + "\n");
 					
 				}
 				
@@ -100,18 +103,12 @@ public class UMLParser {
 					parseMethods(cu, classOrInt, st);
 				}
 			}
-			// Go through all fields, methods, etc. in this type
-			NodeList<BodyDeclaration<?>> members = type.getMembers();
 		}
 	} // End of parseClassOrInt method
 	
 	/*
 	 * Methods used to parse java methods 
 	 * */
-	
-	private static void parseInheritance() {
-		
-	}
 	
 	// Parse methods inside a a class
 	private static void parseMethods(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt, StringBuilder st) {
@@ -132,6 +129,8 @@ public class UMLParser {
 					if (method.getModifiers().contains(Modifier.PUBLIC))
 						println(className + " : +" + methodName + "() : "
 							+ elementType);
+						append(st, (className + " : +" + methodName + "() : "
+								+ elementType + "\n") );
 				}
 			}
 		}
@@ -152,23 +151,29 @@ public class UMLParser {
             println("Getting children of the field classes...");
             for (BodyDeclaration<?> member : members) {
             	if (member instanceof FieldDeclaration) {
-                    FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
+            		FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
+            		
+            		// Declare Strings that will be used to create the grammar for PlantUML variables
                     String className		= classOrInt.getNameAsString();
                     Type elementType		= fieldDeclaration.getElementType();
 					String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
 					
 					String 				initialvalue;
 					VariableDeclarator	variable;
+					Expression expr;
 					
 					List<Node> fieldNodes = fieldDeclaration.getChildNodes();
 					if(fieldNodes != null) {
-						if (fieldNodes.get(0) instanceof VariableDeclarator) {
-							variable = (VariableDeclarator) fieldNodes.get(0);
-							initialvalue = variable.getInitializer().get().toString();
+						variable = (VariableDeclarator) fieldNodes.get(0);
+						
+						if (fieldNodes.get(0) instanceof VariableDeclarator && variable.getInitializer().isPresent()) {
+							expr			= variable.getInitializer().get();
+							initialvalue	= expr.toString();
 							
 							String addVariable = className + " : -" + elementType + " " + variableName
 									+ " = " + initialvalue;
-	            			append(st, addVariable);
+							
+	            			append(st, (addVariable + "\n") );
 	            			println(addVariable);
 						}
 					} else {
@@ -181,29 +186,22 @@ public class UMLParser {
 	                		append(st, addVariable);
 	                		println(className + " : +" + elementType + " " + variableName);
 	                	}
-					}             		
-                }
+					}
+				}
             }
         } // End of for loop TypeDeclaration
 	} // End of parseVariables method
-	
-	/*private static void displayVars(String className, String elementType, String variableName, char accMod) {
-		String addVariable = className + " : " + accMod + elementType + " " + variableName;
-		append(st, addVariable);
-		println(addVariable);
-	}*/
 	
 	// Method used to output code to file
 	private static void outToFile(PrintWriter writer, StringBuilder st) {
 		try {
 			writer = new PrintWriter("the-file-name.txt", "UTF-8");
-		    writer.println("The first line");
-		    writer.println("The second line");
+		    writer.println(st.toString());
 		    writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
+	} // End of outToFile method
 	
 	/*
 	 * Methods used to simplify code for readability purposes
