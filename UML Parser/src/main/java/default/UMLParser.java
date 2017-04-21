@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.Scanner;
 
@@ -14,8 +17,10 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.Expression;
@@ -101,10 +106,53 @@ public class UMLParser {
 				} else {
 					parseVariables(cu, classOrInt, st);
 					parseMethods(cu, classOrInt, st);
+					parseConstructor(cu, classOrInt, st);
 				}
 			}
 		}
 	} // End of parseClassOrInt method
+	
+	/*
+	 * Method to parse constructor
+	 * */
+	
+	private static void parseConstructor(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt, StringBuilder st) {
+		// Go through all the types in the file
+		NodeList<TypeDeclaration<?>> types	= cu.getTypes();
+		String	varNames, 
+				prmNames,
+				prmType,
+				className;
+		className							= classOrInt.getNameAsString();
+		
+		for (TypeDeclaration<?> type : types) {
+			// Go through all fields, methods, etc. in this type
+			NodeList<BodyDeclaration<?>> members	= type.getMembers();
+			
+			for (BodyDeclaration<?> member : members) {
+				if (member instanceof ConstructorDeclaration) {
+					ConstructorDeclaration constructor = (ConstructorDeclaration) member;
+					String cnstrctrName = constructor.getNameAsString();
+					
+					print(className + " : " + cnstrctrName + "(");
+					
+					List<Node> cnstrFlds = constructor.getChildNodes();
+					if(cnstrFlds != null) {
+						for(Node node : cnstrFlds) {
+							if(node instanceof Parameter) {
+								prmNames	= ((Parameter) node).getNameAsString();
+								prmType		= ((Parameter) node).getType().toString();
+								
+								print(prmType + " " + prmNames + ", ");
+							}
+						}
+						print(")");
+					} 
+					println("");
+				} // End if ConstructorDeclaration
+			}
+		}
+	} // End of parseMethods
 	
 	/*
 	 * Methods used to parse java methods 
@@ -208,22 +256,22 @@ public class UMLParser {
 		URL newUrl;
 		HttpURLConnection con;
 		
-		try {
+		/*try {
 			newUrl = new URL(url);
 			con = (HttpURLConnection) newUrl.openConnection();
 			con.setRequestMethod("GET");
 			//add request header
 			con.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-			/*<div id="B1">
+			<div id="B1">
 			<textarea name="text" id="inflated" spellcheck="false">@startuml
 			Bob -&gt; Alice : hello
 			@enduml</textarea>
-			</div>*/
+			</div>
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
-		}
-	} // End of genDiagram method
+		}*/
+	}
 	
 	/*
 	 * Methods used to simplify code for readability purposes
