@@ -203,6 +203,28 @@ public class UMLParser {
 		}
 	} // End of outToFile method
 	
+	public static void genDiagram() {
+		String url = "http://www.plantuml.com/plantuml/uml/SyfFKj2rKt3CoKnELR1Io4ZDoSa70000";
+		URL newUrl;
+		HttpURLConnection con;
+		
+		try {
+			newUrl = new URL(url);
+			con = (HttpURLConnection) newUrl.openConnection();
+			con.setRequestMethod("GET");
+			//add request header
+			con.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+			/*<div id="B1">
+			<textarea name="text" id="inflated" spellcheck="false">@startuml
+			Bob -&gt; Alice : hello
+			@enduml</textarea>
+			</div>*/
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+	} // End of genDiagram method
+	
 	/*
 	 * Methods used to simplify code for readability purposes
 	 * */
