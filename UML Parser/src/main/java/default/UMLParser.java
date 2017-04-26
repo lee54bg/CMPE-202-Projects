@@ -4,12 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Scanner;
-
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
@@ -29,26 +25,23 @@ import com.github.javaparser.ast.type.Type;
 public class UMLParser {
 	
 	public static void main(String[] args) throws Exception {
-		println("Initiating program...");
-		
-		// Output will go to writer once which has been defined below
 		PrintWriter writer = null;
+		File toParse;
+		String destination = null;
 		
-		// Find file from the first argument of the cmd prmpt
-		File toParse			= new File("C:\\Users\\Tatsuya\\workspace\\UMLParser\\src\\main\\java\\com\\umlparser\\UMLParser\\test.java");
-		CompilationUnit cu		= null;
-		FileInputStream parsing;
-		StringBuilder toText	= new StringBuilder();
-		
-		/*if(args.length == 1) {
-			println("Default output to the current directory");
-		} else if(args.length != 2) {
-			println("Not enough arguments.  Terminating program");
+		if(args.length == 1) {
+			destination = System.getProperty("user.dir");
+			println("Default output to the current directory\n");
+		} else if(args.length == 2) {
+			destination = args[1];
+			println("Output location set to: " + args[1]);
+		} else if(args.length == 0) {
+			println("Insufficient arguments.\nUsage: umlparser inputFileLocation [outputFileLocation]");
 			System.exit(0);
 		}
 		
 		// Find file from the first argument of the cmd prmpt
-		File toParse			= new File(args[0]);
+		toParse			= new File(args[0]);
 		CompilationUnit cu		= null;
 		// This will be used to output to a text file
 		StringBuilder toText	= new StringBuilder();
@@ -73,14 +66,19 @@ public class UMLParser {
 				else
 					toParse = new File(pathName);
 			}
-		} while (!foundFile);*/
+		} while (!foundFile);
 		
 		parsing = new FileInputStream(toParse);
 		cu = JavaParser.parse(parsing);
 		
-		println("skinparam classAttributeIconSize 0");
+		println("skinparam classAttributeIconSize 0\n@startuml");
+		append(toText, "skinparam classAttributeIconSize 0\r\n@startuml");
 		parseClassOrInt(cu, toText);
-		outToFile(writer, toText);
+		println("@enduml");
+		append(toText, "@enduml");
+		
+		outToFile(writer, toText, destination);
+		genDiagram();
 	}
 	
 	// Parsing the class name or interface
@@ -96,8 +94,8 @@ public class UMLParser {
 				if(classOrInt.getExtendedTypes() != null) {
 					println(classOrInt.getNameAsString() 
 						+ " --|> " + classOrInt.getExtendedTypes(0));
-					append(st, classOrInt.getNameAsString() 
-						+ " --|> " + classOrInt.getExtendedTypes(0) + "\n");
+					append(st, (classOrInt.getNameAsString() 
+						+ " --|> " + classOrInt.getExtendedTypes(0) + "\r\n"));
 					
 				}
 				
@@ -123,7 +121,7 @@ public class UMLParser {
 				prmNames,
 				prmType,
 				className;
-		className							= classOrInt.getNameAsString();
+		className = classOrInt.getNameAsString();
 		
 		for (TypeDeclaration<?> type : types) {
 			// Go through all fields, methods, etc. in this type
@@ -135,19 +133,34 @@ public class UMLParser {
 					String cnstrctrName = constructor.getNameAsString();
 					
 					print(className + " : " + cnstrctrName + "(");
+					append(st, className + " : " + cnstrctrName + "(");
 					
 					List<Node> cnstrFlds = constructor.getChildNodes();
+					int prmCnt = cnstrFlds.size() / 2;
+					int count = 0;
+					
 					if(cnstrFlds != null) {
 						for(Node node : cnstrFlds) {
 							if(node instanceof Parameter) {
+								count++;
 								prmNames	= ((Parameter) node).getNameAsString();
 								prmType		= ((Parameter) node).getType().toString();
 								
+								if(count == prmCnt) {
+									print(prmType + " " + prmNames);
+									append(st, (prmType + " " + prmNames));
+									break;
+								}
+								
 								print(prmType + " " + prmNames + ", ");
+								append(st, (prmType + " " + prmNames + ", "));
 							}
 						}
+						
+						append(st, ")");
 						print(")");
-					} 
+					}
+					append(st, "\r\n");
 					println("");
 				} // End if ConstructorDeclaration
 			}
@@ -164,7 +177,7 @@ public class UMLParser {
 		NodeList<TypeDeclaration<?>> types = cu.getTypes();
 
 		for (TypeDeclaration<?> type : types) {
-			// Go through all fields, methods, etc. in this type
+			// Iterate through fields in class
 			NodeList<BodyDeclaration<?>> members = type.getMembers();
 
 			for (BodyDeclaration<?> member : members) {
@@ -178,7 +191,7 @@ public class UMLParser {
 						println(className + " : +" + methodName + "() : "
 							+ elementType);
 						append(st, (className + " : +" + methodName + "() : "
-								+ elementType + "\n") );
+							+ elementType + "\r\n") );
 				}
 			}
 		}
@@ -196,7 +209,6 @@ public class UMLParser {
             // Go through all fields, methods, etc. in this type
             NodeList<BodyDeclaration<?>> members = type.getMembers();
             
-            println("Getting children of the field classes...");
             for (BodyDeclaration<?> member : members) {
             	if (member instanceof FieldDeclaration) {
             		FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
@@ -221,17 +233,17 @@ public class UMLParser {
 							String addVariable = className + " : -" + elementType + " " + variableName
 									+ " = " + initialvalue;
 							
-	            			append(st, (addVariable + "\n") );
+	            			append(st, (addVariable + "\r\n") );
 	            			println(addVariable);
 						}
 					} else {
 						if(fieldDeclaration.getModifiers().contains(Modifier.PRIVATE)) {
 	            			String addVariable = className + " : -" + elementType + " " + variableName;
-	            			append(st, addVariable);
+	            			append(st, addVariable + "\r\n");
 	            			println(addVariable);
 	            		} else if(fieldDeclaration.getModifiers().contains(Modifier.PUBLIC)) {
 	                		String addVariable = className + " : +" + elementType + " " + variableName;
-	                		append(st, addVariable);
+	                		append(st, addVariable + "\r\n");
 	                		println(className + " : +" + elementType + " " + variableName);
 	                	}
 					}
@@ -241,9 +253,14 @@ public class UMLParser {
 	} // End of parseVariables method
 	
 	// Method used to output code to file
-	private static void outToFile(PrintWriter writer, StringBuilder st) {
+	private static void outToFile(PrintWriter writer, StringBuilder st, String destination) {
+		println("Generating diagram...");
+		
 		try {
-			writer = new PrintWriter("the-file-name.txt", "UTF-8");
+			String output = System.getProperty("user.dir");
+			println(output);
+			writer = new PrintWriter(output + "\\parseroutput.txt", "UTF-8");
+			// writer = new PrintWriter(outFile);
 		    writer.println(st.toString());
 		    writer.close();
 		} catch (IOException e) {
@@ -252,25 +269,12 @@ public class UMLParser {
 	} // End of outToFile method
 	
 	public static void genDiagram() {
-		String url = "http://www.plantuml.com/plantuml/uml/SyfFKj2rKt3CoKnELR1Io4ZDoSa70000";
-		URL newUrl;
-		HttpURLConnection con;
-		
-		/*try {
-			newUrl = new URL(url);
-			con = (HttpURLConnection) newUrl.openConnection();
-			con.setRequestMethod("GET");
-			//add request header
-			con.setRequestProperty("User-Agent", "Mozilla/5.0");
-
-			<div id="B1">
-			<textarea name="text" id="inflated" spellcheck="false">@startuml
-			Bob -&gt; Alice : hello
-			@enduml</textarea>
-			</div>
-		} catch (MalformedURLException e) {
+		try {
+			String cmd = "java -jar plantuml.jar";
+			Runtime.getRuntime().exec(cmd);
+		} catch (IOException e) {
 			e.printStackTrace();
-		}*/
+		}
 	}
 	
 	/*
