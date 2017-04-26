@@ -26,15 +26,16 @@ public class UMLParser {
 	
 	public static void main(String[] args) throws Exception {
 		PrintWriter writer = null;
-		File toParse;
 		String destination = null;
+		CompilationUnit cu = null;
+		File toParse;
 		
 		if(args.length == 1) {
 			destination = System.getProperty("user.dir");
-			println("Default output to the current directory\n");
+			println("Default output to current directory : " + destination);
 		} else if(args.length == 2) {
 			destination = args[1];
-			println("Output location set to: " + args[1]);
+			println("Output location set to: " + destination);
 		} else if(args.length == 0) {
 			println("Insufficient arguments.\nUsage: umlparser inputFileLocation [outputFileLocation]");
 			System.exit(0);
@@ -42,7 +43,7 @@ public class UMLParser {
 		
 		// Find file from the first argument of the cmd prmpt
 		toParse			= new File(args[0]);
-		CompilationUnit cu		= null;
+		
 		// This will be used to output to a text file
 		StringBuilder toText	= new StringBuilder();
 		// Scanner used to input the correct path name
@@ -51,6 +52,8 @@ public class UMLParser {
 		boolean foundFile		= false;
 		// Used to parse the input stream of the file
 		FileInputStream parsing;
+		// Output of the file name
+		String fileName = "parseroutput.txt";
 		
 		// Do while loop used if user enters an invalid path type
 		// Gives users the option to exit the program
@@ -68,17 +71,19 @@ public class UMLParser {
 			}
 		} while (!foundFile);
 		
+		input.close();
+		
 		parsing = new FileInputStream(toParse);
 		cu = JavaParser.parse(parsing);
 		
 		println("skinparam classAttributeIconSize 0\n@startuml");
-		append(toText, "skinparam classAttributeIconSize 0\r\n@startuml");
+		append(toText, "skinparam classAttributeIconSize 0\r\n@startuml\r\n");
 		parseClassOrInt(cu, toText);
 		println("@enduml");
 		append(toText, "@enduml");
 		
-		outToFile(writer, toText, destination);
-		genDiagram();
+		outToFile(writer, toText, destination, fileName);
+		genDiagram(destination, fileName);
 	}
 	
 	// Parsing the class name or interface
@@ -117,8 +122,7 @@ public class UMLParser {
 	private static void parseConstructor(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt, StringBuilder st) {
 		// Go through all the types in the file
 		NodeList<TypeDeclaration<?>> types	= cu.getTypes();
-		String	varNames, 
-				prmNames,
+		String	prmNames,
 				prmType,
 				className;
 		className = classOrInt.getNameAsString();
@@ -253,14 +257,14 @@ public class UMLParser {
 	} // End of parseVariables method
 	
 	// Method used to output code to file
-	private static void outToFile(PrintWriter writer, StringBuilder st, String destination) {
+	private static void outToFile(PrintWriter writer, StringBuilder st, String destination, String fileName) {
 		println("Generating diagram...");
 		
 		try {
-			String output = System.getProperty("user.dir");
+			/*String output = System.getProperty("user.dir");
 			println(output);
-			writer = new PrintWriter(output + "\\parseroutput.txt", "UTF-8");
-			// writer = new PrintWriter(outFile);
+			*/
+			writer = new PrintWriter(destination + "\\" + fileName, "UTF-8");
 		    writer.println(st.toString());
 		    writer.close();
 		} catch (IOException e) {
@@ -268,9 +272,10 @@ public class UMLParser {
 		}
 	} // End of outToFile method
 	
-	public static void genDiagram() {
+	public static void genDiagram(String destination, String fileName) {
 		try {
-			String cmd = "java -jar plantuml.jar";
+			String cmd = "java -jar plantuml.jar " + destination + " " + fileName;
+			println(cmd);
 			Runtime.getRuntime().exec(cmd);
 		} catch (IOException e) {
 			e.printStackTrace();
