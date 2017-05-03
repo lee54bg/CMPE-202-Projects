@@ -4,8 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.regex.Pattern;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
@@ -20,7 +23,10 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.symbolsolver.model.declarations.ClassDeclaration;
+import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 
 public class UMLParser {
 	
@@ -54,11 +60,14 @@ public class UMLParser {
 		FileInputStream parsing;
 		// Output of the file name
 		String fileName = "parseroutput.txt";
+		// List of files for associations
+		ArrayList<File> files = new ArrayList<>(); 
 		
 		// Do while loop used if user enters an invalid path type
 		// Gives users the option to exit the program
 		do {
-			if (toParse.exists())
+			// if (toParse.exists())
+			if (toParse.exists() | toParse.isDirectory())
 				foundFile = true;
 			else {
 				println("Please enter valid path name or exit to close program: ");
@@ -73,38 +82,138 @@ public class UMLParser {
 		
 		input.close();
 		
-		parsing = new FileInputStream(toParse);
-		cu = JavaParser.parse(parsing);
-		
-		println("skinparam classAttributeIconSize 0\n@startuml");
-		append(toText, "skinparam classAttributeIconSize 0\r\n@startuml\r\n");
-		parseClassOrInt(cu, toText);
-		println("@enduml");
-		append(toText, "@enduml");
-		
-		outToFile(writer, toText, destination, fileName);
-		genDiagram(destination, fileName);
+		// Parse a directory of files
+		if(toParse.isDirectory()) {
+			File[] listOfFiles = toParse.listFiles();
+			
+			println("skinparam classAttributeIconSize 0\n@startuml");
+			append(toText, "skinparam classAttributeIconSize 0\r\n@startuml\r\n");
+			
+//			int count = 0;
+//			int numOfFiles = toParse.listFiles().length;
+			
+//			FileInputStream[] parseFiles = new FileInputStream[numOfFiles];
+//			CompilationUnit[] cuParse = new CompilationUnit[numOfFiles]; 
+			
+			for(File file : listOfFiles) {
+				if(file.exists() && file.getName().endsWith(".java")) {
+					files.add(file);	
+				}
+			}
+			
+			for (File file : listOfFiles) {
+				if(file.isFile() && file.getName().endsWith(".java")) {
+					/*parseFiles[count] = new FileInputStream(file);
+					cuParse[count] = JavaParser.parse(parseFiles[count]);*/
+					parsing = new FileInputStream(file);
+					cu = JavaParser.parse(parsing);
+					parseClassOrInt(cu, toText, files);
+				}
+			}
+			
+			println("@enduml");
+			append(toText, "@enduml");
+			outToFile(writer, toText, destination, fileName);
+			genDiagram(destination, fileName);
+		} else {
+			// Parse a single file
+			parsing = new FileInputStream(toParse);
+			cu = JavaParser.parse(parsing);
+			
+			println("skinparam classAttributeIconSize 0\n@startuml");
+			append(toText, "skinparam classAttributeIconSize 0\r\n@startuml\r\n");
+			parseClassOrInt(cu, toText);
+			println("@enduml");
+			append(toText, "@enduml");
+			
+			outToFile(writer, toText, destination, fileName);
+			genDiagram(destination, fileName);
+		}
 	}
 	
 	// Parsing the class name or interface
-	private static void parseClassOrInt(CompilationUnit cu, StringBuilder st) {
-		// ClassOrInterfaceDeclaration classOrInt = new ClassOrInterfaceDeclaration();
-		
-		// NodeList<TypeDeclaration<?>> types = cu.get();
+	private static void parseClassOrInt(CompilationUnit cu, StringBuilder st, ArrayList<File> files) {
 		NodeList<TypeDeclaration<?>> types = cu.getTypes();
+		
 		for (TypeDeclaration<?> type : types) {
 			if (type instanceof ClassOrInterfaceDeclaration) {
 				ClassOrInterfaceDeclaration classOrInt = (ClassOrInterfaceDeclaration) type;
 				
 				if(classOrInt.getExtendedTypes() != null) {
-					println(classOrInt.getNameAsString() 
-						+ " --|> " + classOrInt.getExtendedTypes(0));
-					append(st, (classOrInt.getNameAsString() 
-						+ " --|> " + classOrInt.getExtendedTypes(0) + "\r\n"));
-					
+					// Empty if statement to keep going if there's no base class
+					if(classOrInt.getExtendedTypes().size() == 0) {} else {
+						println(classOrInt.getNameAsString() 
+							+ " --|> " + classOrInt.getExtendedTypes(0));
+						append(st, (classOrInt.getNameAsString() 
+							+ " --|> " + classOrInt.getExtendedTypes(0) + "\r\n"));
+					}
+				}
+				
+				if(classOrInt.getImplementedTypes() != null) {
+					if(classOrInt.getImplementedTypes().size() == 0) {} else {
+						println(classOrInt.getNameAsString() 
+							+ " ..|> " + classOrInt.getImplementedTypes(0));
+						append(st, (classOrInt.getNameAsString() 
+							+ " ..|> " + classOrInt.getImplementedTypes(0) + "\r\n"));
+						parseMethods(cu, classOrInt, st);
+					}
 				}
 				
 				if (classOrInt.isInterface()) {
+					println("interface " + classOrInt.getNameAsString());
+					append(st, "interface " + classOrInt.getNameAsString() + "\r\n");
+					parseMethods(cu, classOrInt, st);
+				} else if(classOrInt.getModifiers().contains(Modifier.PUBLIC)) {
+						parseVariables(cu, classOrInt, st, files);
+						parseMethods(cu, classOrInt, st);
+						parseConstructor(cu, classOrInt, st);
+				} else {
+					parseVariables(cu, classOrInt, st, files);
+					parseMethods(cu, classOrInt, st);
+					parseConstructor(cu, classOrInt, st);
+				}
+			}
+		}
+	} // End of parseClassOrInt method
+	
+	// Parsing the class name or interface for single files
+	private static void parseClassOrInt(CompilationUnit cu, StringBuilder st) {
+		NodeList<TypeDeclaration<?>> types = cu.getTypes();
+		
+		for (TypeDeclaration<?> type : types) {
+			if (type instanceof ClassOrInterfaceDeclaration) {
+				ClassOrInterfaceDeclaration classOrInt = (ClassOrInterfaceDeclaration) type;
+
+				if (classOrInt.getExtendedTypes() != null) {
+					// Empty if statement to keep going if there's no base class
+					if (classOrInt.getExtendedTypes().size() == 0) {
+					} else {
+						println(classOrInt.getNameAsString() + " --|> " + classOrInt.getExtendedTypes(0));
+						append(st, (classOrInt.getNameAsString() + " --|> " + classOrInt.getExtendedTypes(0) + "\r\n"));
+					}
+				}
+
+				if (classOrInt.getImplementedTypes() != null) {
+					if (classOrInt.getImplementedTypes().size() == 0) {
+					} else {
+						println(classOrInt.getNameAsString() + " ..|> " + classOrInt.getImplementedTypes(0));
+						append(st,
+								(classOrInt.getNameAsString() + " ..|> " + classOrInt.getImplementedTypes(0) + "\r\n"));
+						parseMethods(cu, classOrInt, st);
+					}
+				}
+
+				if (classOrInt.isInterface()) {
+					println("interface " + classOrInt.getNameAsString());
+					append(st, "interface " + classOrInt.getNameAsString() + "\r\n");
+					parseMethods(cu, classOrInt, st);
+				} else if (classOrInt.getModifiers().contains(Modifier.PUBLIC)) {
+					parseVariables(cu, classOrInt, st);
+					parseMethods(cu, classOrInt, st);
+					parseConstructor(cu, classOrInt, st);
+				} else if(classOrInt.isInterface() && classOrInt.getModifiers().contains(Modifier.PUBLIC)) { 
+					println("interface " + classOrInt.getNameAsString());
+					append(st, "interface " + classOrInt.getNameAsString() + "\r\n");
 					parseMethods(cu, classOrInt, st);
 				} else {
 					parseVariables(cu, classOrInt, st);
@@ -187,6 +296,7 @@ public class UMLParser {
 			for (BodyDeclaration<?> member : members) {
 				if (member instanceof MethodDeclaration) {
 					MethodDeclaration method = (MethodDeclaration) member;
+					member.toString();
 					String className	= classOrInt.getNameAsString();
 					String methodName	= method.getNameAsString().toString();
 					Type elementType	= method.getType();
@@ -205,6 +315,107 @@ public class UMLParser {
 	 * Methods will parse the variables to their respective classes
 	 * */
 	
+	private static void parseVariables(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt, StringBuilder st, ArrayList<File> files) {
+		// Go through all the types in the file
+        NodeList<TypeDeclaration<?>> types = cu.getTypes();
+        
+        for (TypeDeclaration<?> type : types) {
+            // Iterate through all fields
+            NodeList<BodyDeclaration<?>> members = type.getMembers();
+            
+            int count = 0;
+            for (BodyDeclaration<?> member : members) {
+            	if (member instanceof FieldDeclaration) {
+            		FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
+            		
+            		// Declare Strings that will be used to create the grammar for PlantUML variables
+                    String className		= classOrInt.getNameAsString();
+                    Type elementType		= fieldDeclaration.getElementType();
+					//String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
+                    String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
+					// To compare for file names
+                    String temp = elementType.toString() + ".java";
+                    String oneToMany = null;
+                    
+					String 				initialvalue;
+					VariableDeclarator	variable;
+					Expression expr;
+					boolean found = false;
+					
+					for(File file : files) {
+						if(temp.toString().contains(file.getName()) ) {
+							oneToMany = elementType.toString();
+							found = true;
+							break;
+						}	
+					}
+					
+					if(found == true) {
+						if(elementType.toString().contains(oneToMany)) {
+							println(classOrInt.getNameAsString() + " \"1\" -- \"1\" " + elementType.toString());
+							append(st, classOrInt.getNameAsString() + " \"1\" -- \"1\" " + elementType.toString() + "\r\n");
+						} 
+					} else if(fieldDeclaration.toString().contains("Collection")) {
+						String m2M = null;
+						boolean foundCollection = false;
+						
+						for(File file : files) {
+							String manyToMany[] = file.getName().split("\\.");
+							//println("File Name: " + manyToMany[0]);
+							if(elementType.toString().contains(manyToMany[0])) {
+								m2M = manyToMany[0];
+								foundCollection = true;
+								break;
+							}
+						}
+						
+						if(foundCollection == true) {
+							println(classOrInt.getNameAsString() + " \"1\" -- \"many\" " + m2M);
+							append(st, classOrInt.getNameAsString() + " \"1\" -- \"many\" " + m2M + "\r\n");
+						}
+					} else if(fieldDeclaration.toString().contains("private")) {
+						if (fieldDeclaration.toString().contains("[]")) {
+							String addVariable = className + " : -" + elementType + "[] " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						} else {
+							String addVariable = className + " : -" + elementType + " " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						}
+            		} else if(fieldDeclaration.toString().contains("public")) {
+            			if (fieldDeclaration.toString().contains("[]")) {
+							String addVariable = className + " : +" + elementType + "[] " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						} else {
+							String addVariable = className + " : +" + elementType + " " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						}
+            		} else if(fieldDeclaration.toString().contains("=")) {
+            			List<Node> fieldNodes = fieldDeclaration.getChildNodes();
+    					if(fieldNodes != null) {
+    						variable = (VariableDeclarator) fieldNodes.get(0);
+    						
+    						if (fieldNodes.get(0) instanceof VariableDeclarator && variable.getInitializer().isPresent()) {
+    							expr			= variable.getInitializer().get();
+    							initialvalue	= expr.toString();
+    							
+    							String addVariable = className + " : -" + elementType + " " + variableName
+    									+ " = " + initialvalue;
+    							
+    	            			append(st, (addVariable + "\r\n") );
+    	            			println(addVariable);
+    						}
+    					}
+            		}
+				}
+            }
+        } // End of for loop TypeDeclaration
+	} // End of parseVariables method
+	
+	// For single file parse Variables
 	private static void parseVariables(CompilationUnit cu, ClassOrInterfaceDeclaration classOrInt, StringBuilder st) {
 		// Go through all the types in the file
         NodeList<TypeDeclaration<?>> types = cu.getTypes();
@@ -213,6 +424,8 @@ public class UMLParser {
             // Go through all fields, methods, etc. in this type
             NodeList<BodyDeclaration<?>> members = type.getMembers();
             
+            
+            int count = 0;
             for (BodyDeclaration<?> member : members) {
             	if (member instanceof FieldDeclaration) {
             		FieldDeclaration fieldDeclaration = (FieldDeclaration) member;
@@ -220,41 +433,59 @@ public class UMLParser {
             		// Declare Strings that will be used to create the grammar for PlantUML variables
                     String className		= classOrInt.getNameAsString();
                     Type elementType		= fieldDeclaration.getElementType();
-					String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
-					
+					//String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
+                    String variableName		= fieldDeclaration.getVariable(0).getNameAsString();
+					// To compare for file names
+                    String temp = elementType.toString() + ".java";
+                    String oneToMany;
+                    
 					String 				initialvalue;
 					VariableDeclarator	variable;
 					Expression expr;
 					
-					List<Node> fieldNodes = fieldDeclaration.getChildNodes();
-					if(fieldNodes != null) {
-						variable = (VariableDeclarator) fieldNodes.get(0);
-						
-						if (fieldNodes.get(0) instanceof VariableDeclarator && variable.getInitializer().isPresent()) {
-							expr			= variable.getInitializer().get();
-							initialvalue	= expr.toString();
-							
-							String addVariable = className + " : -" + elementType + " " + variableName
-									+ " = " + initialvalue;
-							
-	            			append(st, (addVariable + "\r\n") );
-	            			println(addVariable);
-						}
-					} else {
-						if(fieldDeclaration.getModifiers().contains(Modifier.PRIVATE)) {
-	            			String addVariable = className + " : -" + elementType + " " + variableName;
+					
+					
+					if(fieldDeclaration.toString().contains("private")) {
+						if (fieldDeclaration.toString().contains("[]")) {
+							String addVariable = className + " : -" + elementType + "[] " + variableName;
 	            			append(st, addVariable + "\r\n");
 	            			println(addVariable);
-	            		} else if(fieldDeclaration.getModifiers().contains(Modifier.PUBLIC)) {
-	                		String addVariable = className + " : +" + elementType + " " + variableName;
-	                		append(st, addVariable + "\r\n");
-	                		println(className + " : +" + elementType + " " + variableName);
-	                	}
-					}
+						} else {
+							String addVariable = className + " : -" + elementType + " " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						}
+            		} else if(fieldDeclaration.toString().contains("public")) {
+            			if (fieldDeclaration.toString().contains("[]")) {
+							String addVariable = className + " : +" + elementType + "[] " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						} else {
+							String addVariable = className + " : +" + elementType + " " + variableName;
+	            			append(st, addVariable + "\r\n");
+	            			println(addVariable);
+						}
+            		} else if(fieldDeclaration.toString().contains("=")) {
+            			List<Node> fieldNodes = fieldDeclaration.getChildNodes();
+    					if(fieldNodes != null) {
+    						variable = (VariableDeclarator) fieldNodes.get(0);
+    						
+    						if (fieldNodes.get(0) instanceof VariableDeclarator && variable.getInitializer().isPresent()) {
+    							expr			= variable.getInitializer().get();
+    							initialvalue	= expr.toString();
+    							
+    							String addVariable = className + " : -" + elementType + " " + variableName
+    									+ " = " + initialvalue;
+    							
+    	            			append(st, (addVariable + "\r\n") );
+    	            			println(addVariable);
+    						}
+    					}
+            		}
 				}
             }
         } // End of for loop TypeDeclaration
-	} // End of parseVariables method
+	} // End of single file parseVariables method
 	
 	// Method used to output code to file
 	private static void outToFile(PrintWriter writer, StringBuilder st, String destination, String fileName) {
@@ -274,7 +505,7 @@ public class UMLParser {
 	
 	public static void genDiagram(String destination, String fileName) {
 		try {
-			String cmd = "java -jar plantuml.jar " + destination + " " + fileName;
+			String cmd = "java -jar plantuml.jar " + destination + "\\" + fileName;
 			println(cmd);
 			Runtime.getRuntime().exec(cmd);
 		} catch (IOException e) {
@@ -283,17 +514,10 @@ public class UMLParser {
 	}
 	
 	/*
-	 * Methods used to simplify code for readability purposes
+	 * Methods used to simplify code for readability
 	 * */
 	
-	public static void append(StringBuilder st, String string) {
-		st.append(string);
-	}
-	
-	public static void print(String string) {
-		System.out.print(string);
-	}
-	public static void println(String string) {
-		System.out.println(string);
-	}
+	public static void append(StringBuilder st, String string) { st.append(string);	}
+	public static void print(String string) { System.out.print(string);	}
+	public static void println(String string) { System.out.println(string);	}
 }
